@@ -5,11 +5,11 @@ API REST de gerenciamento de tarefas, com cadastro de usuários e autenticação
 [![CI](https://github.com/FRSContiero/task-api/actions/workflows/ci.yml/badge.svg)](https://github.com/FRSContiero/task-api/actions/workflows/ci.yml)
 ![Java 25](https://img.shields.io/badge/Java-25-blue)
 
-> Em desenvolvimento. Já disponível: cadastro de usuário e consulta do usuário autenticado. Próximas etapas: login/refresh/logout e tarefas.
+> Em desenvolvimento. Já disponível: cadastro, login, refresh, logout e troca de senha. Próxima etapa: tarefas.
 
 ## Arquitetura
 
-Código organizado por feature (`user`, depois `auth` e `task`), com camadas dentro de cada uma. Os use cases dependem só de ports (interfaces do domínio); a infraestrutura implementa esses ports com adapters, então regra de negócio não conhece JPA nem Spring Security.
+Código organizado por feature (`user`, `auth` e, em breve, `task`), com camadas dentro de cada uma. Os use cases dependem só de ports (interfaces do domínio); a infraestrutura implementa esses ports com adapters, então regra de negócio não conhece JPA nem Spring Security.
 
 ```mermaid
 flowchart LR
@@ -50,7 +50,11 @@ Swagger UI (somente no perfil `dev`): http://localhost:8080/swagger-ui.html
 | Método | Rota | Descrição | Autenticação |
 |---|---|---|---|
 | POST | `/api/auth/register` | Cadastra um usuário | Não |
+| POST | `/api/auth/login` | Autentica e emite access token e refresh token | Não |
+| POST | `/api/auth/refresh` | Troca o refresh token por um novo par | Não |
+| POST | `/api/auth/logout` | Revoga o refresh token | Bearer JWT |
 | GET | `/api/users/me` | Retorna o usuário autenticado | Bearer JWT |
+| PUT | `/api/users/me/password` | Troca a senha e encerra todas as sessões | Bearer JWT |
 
 Erros seguem o formato `ProblemDetail` (RFC 9457). Regras de negócio, fluxos e configuração em detalhe: [docs/MANUAL.md](docs/MANUAL.md).
 
@@ -69,10 +73,11 @@ Entidades e use cases têm testes unitários sem Spring, com fakes em memória d
 - **Ports para persistência e hash de senha** (`UserRepository`, `PasswordHasher`) — os use cases são testados sem banco e sem Spring — trade-off: entidades JPA ficam no `domain`, sem camada de mapeamento.
 - **Email como value object** (`Email`), normalizado em minúsculas — cadastro e futuras buscas por email não diferenciam maiúsculas — trade-off: precisa de um `AttributeConverter` para o JPA.
 - **Unicidade de email garantida no banco** — a checagem prévia no use case dá a mensagem certa no caso comum, e a constraint `uk_users_email` cobre cadastros simultâneos, traduzida para 409 em `JpaUserRepository`.
+- **Refresh token opaco, guardado só como hash e rotacionado a cada uso** — permite logout real e detecta vazamento: se um token já trocado volta a ser usado, todas as sessões do usuário são revogadas (`RefreshTokensUseCase`) — trade-off: uma consulta ao banco a cada refresh e uma tabela a mais.
+- **Troca de senha na feature `auth`, não em `user`** — ela precisa encerrar as sessões; em `user`, as duas features dependeriam uma da outra — trade-off: a rota `/api/users/me/password` é atendida pelo `AuthController`.
 - **IDs UUID gerados na aplicação** — o id existe antes de salvar e não expõe contagem de registros — trade-off: o campo `@Version` também é usado pelo Spring Data para saber que a entidade é nova.
 
 ## Próximos passos
 
-- Login, refresh token com rotação e logout
-- Troca de senha
 - CRUD de tarefas e listagem com filtros
+- Limpeza periódica de refresh tokens expirados

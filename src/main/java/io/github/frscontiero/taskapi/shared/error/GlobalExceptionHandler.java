@@ -1,5 +1,6 @@
 package io.github.frscontiero.taskapi.shared.error;
 
+import org.springframework.dao.OptimisticLockingFailureException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.HttpStatusCode;
 import org.springframework.http.ProblemDetail;
@@ -18,6 +19,11 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
   // 422 via valueOf: the HttpStatus constant name changed between Spring versions
   private static final HttpStatusCode UNPROCESSABLE = HttpStatusCode.valueOf(422);
 
+  @ExceptionHandler(UnauthorizedException.class)
+  ProblemDetail handleUnauthorized(UnauthorizedException exception) {
+    return problem(HttpStatus.UNAUTHORIZED, "Unauthorized", exception);
+  }
+
   @ExceptionHandler(NotFoundException.class)
   ProblemDetail handleNotFound(NotFoundException exception) {
     return problem(HttpStatus.NOT_FOUND, "Resource not found", exception);
@@ -26,6 +32,15 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
   @ExceptionHandler(ConflictException.class)
   ProblemDetail handleConflict(ConflictException exception) {
     return problem(HttpStatus.CONFLICT, "Conflict", exception);
+  }
+
+  @ExceptionHandler(OptimisticLockingFailureException.class)
+  ProblemDetail handleConcurrentUpdate(OptimisticLockingFailureException exception) {
+    ProblemDetail detail =
+        ProblemDetail.forStatusAndDetail(
+            HttpStatus.CONFLICT, "The resource was modified concurrently, retry the request");
+    detail.setTitle("Conflict");
+    return detail;
   }
 
   @ExceptionHandler(BusinessRuleException.class)
