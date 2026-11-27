@@ -43,6 +43,10 @@ public class User {
     return new User(name, email, passwordHash, createdAt);
   }
 
+  public void changePassword(String newPasswordHash) {
+    this.passwordHash = newPasswordHash;
+  }
+
   public UUID getId() {
     return id;
   }

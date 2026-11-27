@@ -40,6 +40,11 @@ class JpaUserRepository implements UserRepository {
   }
 
   @Override
+  public Optional<User> findByEmail(Email email) {
+    return jpa.findByEmail(email);
+  }
+
+  @Override
   public boolean existsByEmail(Email email) {
     return jpa.existsByEmail(email);
   }

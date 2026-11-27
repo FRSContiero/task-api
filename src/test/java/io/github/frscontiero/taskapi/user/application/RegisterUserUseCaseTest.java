@@ -19,7 +19,7 @@ class RegisterUserUseCaseTest {
   private final InMemoryUserRepository users = new InMemoryUserRepository();
   private final Clock clock = Clock.fixed(NOW, ZoneOffset.UTC);
   private final RegisterUserUseCase registerUser =
-      new RegisterUserUseCase(users, rawPassword -> "hashed:" + rawPassword, clock);
+      new RegisterUserUseCase(users, new FakePasswordHasher(), clock);
 
   @Test
   void shouldRegisterUserWithHashedPassword() {
